@@ -17,6 +17,7 @@ def train():
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, shuffle=False  # shuffle=False keeps time order
     )
+    mlflow.set_tracking_uri("mlruns")
 
     mlflow.set_experiment("stock-movement-predictor")
 
@@ -30,7 +31,8 @@ def train():
         acc       = accuracy_score(y_test, preds)
         precision = precision_score(y_test, preds)
         recall    = recall_score(y_test, preds)
-
+        
+            
         # Log everything to MLflow
         mlflow.log_params(params)
         mlflow.log_metric("accuracy", acc)
