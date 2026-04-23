@@ -1,0 +1,23 @@
+artifact_path: file:///C:/Users/keert/Downloads/stock-mlops/mlruns/1/models/m-512c5b3f0ba34535926cd7ec0b571537/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.11.9
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+mlflow_version: 3.11.1
+model_id: m-512c5b3f0ba34535926cd7ec0b571537
+model_size_bytes: 458782
+model_uuid: m-512c5b3f0ba34535926cd7ec0b571537
+prompts: null
+run_id: b11d4c42f45c4a1c9277dd2ad1a68548
+utc_time_created: '2026-04-23 15:26:59.812531'
