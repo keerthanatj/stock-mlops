@@ -6,23 +6,19 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 import joblib
 import os
 
 def load_data():
-    
-    df = pd.read_csv("data/stock_data.csv")
-    features = ['Open', 'High', 'Low', 'Close', 'Volume',
-            'SMA_10', 'SMA_30', 'RSI', 'MACD', 'BB_high', 'BB_low',
-            'Return_1d', 'Return_5d', 'Volatility',
-            'High_Low_Pct', 'Close_Open', 'Volume_MA10', 'SMA_ratio']
-    X = df[features]
-    y = df['Target']
-    # shuffle=False keeps time order — important for stock data
+    df = pd.read_csv("data/fraud_data.csv")
+    X = df.drop("Class", axis=1)
+    y = df["Class"]
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, shuffle=False
+        X, y, test_size=0.2, random_state=42
     )
-    return X_train, X_test, y_train, y_test, features
+    return X_train, X_test, y_train, y_test, X.columns.tolist()
 
 def evaluate(model, X_test, y_test):
     preds = model.predict(X_test)
@@ -44,7 +40,7 @@ def train_and_log(name, model, params, X_train, X_test, y_train, y_test):
         mlflow.log_metrics(metrics)
         mlflow.sklearn.log_model(
             model, f"{name}_model",
-            registered_model_name="StockMovementPredictor"
+            registered_model_name="FraudDetector"
         )
 
         print(f"  Accuracy:  {metrics['accuracy']}")
@@ -55,32 +51,40 @@ def train_and_log(name, model, params, X_train, X_test, y_train, y_test):
     return model, metrics
 
 def train():
-    mlflow.set_experiment("stock-movement-predictor")
+    mlflow.set_experiment("credit-card-fraud-detection")
     X_train, X_test, y_train, y_test, features = load_data()
 
-    # ── 4 Models ──────────────────────────────────────────────
     models = [
         (
             "GradientBoosting",
-            GradientBoostingClassifier(n_estimators=200, learning_rate=0.05,
-                                       max_depth=4, random_state=42),
-            {"n_estimators": 200, "learning_rate": 0.05, "max_depth": 4}
+            Pipeline([("scaler", StandardScaler()),
+                      ("model", GradientBoostingClassifier(
+                          n_estimators=200, learning_rate=0.05,
+                          max_depth=5, random_state=42))]),
+            {"n_estimators": 200, "learning_rate": 0.05, "max_depth": 5}
         ),
         (
             "RandomForest",
-            RandomForestClassifier(n_estimators=200, max_depth=6,
-                                   random_state=42),
-            {"n_estimators": 200, "max_depth": 6}
+            Pipeline([("scaler", StandardScaler()),
+                      ("model", RandomForestClassifier(
+                          n_estimators=200, max_depth=8,
+                          random_state=42))]),
+            {"n_estimators": 200, "max_depth": 8}
         ),
         (
             "LogisticRegression",
-            LogisticRegression(max_iter=1000, C=1.0, random_state=42),
-            {"max_iter": 1000, "C": 1.0}
+            Pipeline([("scaler", StandardScaler()),
+                      ("model", LogisticRegression(
+                          max_iter=1000, C=0.1, random_state=42))]),
+            {"max_iter": 1000, "C": 0.1}
         ),
         (
             "SVM",
-            SVC(kernel="rbf", C=1.0, probability=True, random_state=42),
-            {"kernel": "rbf", "C": 1.0}
+            Pipeline([("scaler", StandardScaler()),
+                      ("model", SVC(
+                          kernel="rbf", C=10.0,
+                          probability=True, random_state=42))]),
+            {"kernel": "rbf", "C": 10.0}
         ),
     ]
 
@@ -99,12 +103,10 @@ def train():
             best_model = trained_model
             best_name  = name
 
-    # ── Save best model ────────────────────────────────────────
     os.makedirs("models", exist_ok=True)
     joblib.dump(best_model, "models/model.pkl")
     joblib.dump(features,   "models/features.pkl")
 
-    # ── Print comparison table ─────────────────────────────────
     print("\n" + "="*60)
     print("MODEL COMPARISON SUMMARY")
     print("="*60)

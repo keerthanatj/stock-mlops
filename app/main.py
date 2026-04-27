@@ -12,45 +12,41 @@ logging.basicConfig(
     format="%(asctime)s | %(message)s"
 )
 
-app = FastAPI(title="Stock Movement Predictor API")
+app = FastAPI(title="Credit Card Fraud Detection API")
 model    = joblib.load("models/model.pkl")
 features = joblib.load("models/features.pkl")
 
-class StockInput(BaseModel):
-    Open: float
-    High: float
-    Low: float
-    Close: float
-    Volume: float
-    SMA_10: float
-    SMA_30: float
-    RSI: float
-    MACD: float
-    BB_high: float
-    BB_low: float
+class TransactionInput(BaseModel):
+    Time: float
+    V1: float; V2: float; V3: float; V4: float; V5: float
+    V6: float; V7: float; V8: float; V9: float; V10: float
+    V11: float; V12: float; V13: float; V14: float; V15: float
+    V16: float; V17: float; V18: float; V19: float; V20: float
+    V21: float; V22: float; V23: float; V24: float; V25: float
+    V26: float; V27: float; V28: float
+    Amount: float
 
 @app.get("/")
 def root():
-    return {"message": "Stock Movement Predictor API is live"}
+    return {"message": "Fraud Detection API is live"}
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 @app.post("/predict")
-def predict(data: StockInput):
+def predict(data: TransactionInput):
     input_df = pd.DataFrame([data.dict()])
     input_df = input_df[features]
 
-    prediction = model.predict(input_df)[0]
+    prediction  = model.predict(input_df)[0]
     probability = model.predict_proba(input_df)[0][prediction]
 
-    direction = "UP 📈" if prediction == 1 else "DOWN 📉"
-
-    logging.info(f"Input: {data.dict()} | Prediction: {direction} | Confidence: {probability:.2f}")
+    result = "🚨 FRAUD" if prediction == 1 else "✅ LEGITIMATE"
+    logging.info(f"Amount: {data.Amount} | Prediction: {result} | Confidence: {probability:.2f}")
 
     return {
-        "prediction": direction,
+        "prediction": result,
         "confidence": round(float(probability), 4),
-        "signal": int(prediction)
+        "is_fraud": bool(prediction)
     }
